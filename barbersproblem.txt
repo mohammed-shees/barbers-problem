@@ -1,0 +1,28 @@
+#define CHAIRS 5 /* # chairs for waiting customers */
+typedef int semaphore; /* use your imagination */
+semaphore customers = 0; /* # of customers waiting for service */
+semaphore barbers = 0; /* # of barbers waiting for customers */
+semaphore mutex = 1; /* for mutual exclusion */
+int waiting = 0; /* customer are waiting (not being cut) */
+void barber(void)
+{
+ while (TRUE) {
+ down(&customers); /* go to sleep if # of customers is 0 */
+ down(&mutex); /* acquire access to "waiting' */
+ waiting = waiting - 1; /* decrement count of waiting customers */
+ up(&barbers); /* one barber is now ready to cut hair */
+ up(&mutex); /* release 'waiting' */
+ cut_hair(); /* cut hair (outside critical region */
+ }
+}
+void customer(void)
+{
+ down(&mutex); /* enter critical region */
+ if (waiting < CHAIRS) { /* if there are no free chairs, leave */
+ waiting = waiting + 1; /* increment count of waiting customers */
+ up(&customers); /* wake up barber if necessary */
+ up(&mutex); /* release access to 'waiting' */
+ down(&barbers); /* go to sleep if # of free barbers is 0 */
+ get_haircut(); /* be seated and be served */
+ } else {
+ up(&mutex); /* shop is full; do not wait */
